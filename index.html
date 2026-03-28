@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Genesis — Code Without Limits</title>
+  <meta name="description" content="Genesis is a powerful offline-capable code editor and playground built for the browser. Edit, run, and create — anywhere."/>
+  <meta property="og:title" content="Genesis — Code Without Limits"/>
+  <meta property="og:description" content="Monaco-powered editor + live playground. Open source. Offline. Free."/>
+  <meta name="theme-color" content="#0a0a12"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── DARK (default) ── */
+    :root {
+      --ink:      #e8e6f0;
+      --ink2:     #8888aa;
+      --ink3:     #44445a;
+      --bg:       #0a0a12;
+      --bg2:      #0f0f1a;
+      --bg3:      #14141f;
+      --accent:   #7c6af7;
+      --accent2:  #22d3ee;
+      --gold:     #f59e0b;
+      --red:      #f87171;
+      --border:   rgba(124,106,247,0.15);
+      --glow:     rgba(124,106,247,0.08);
+      --nav-bg:   rgba(10,10,18,.95);
+      --shadow:   rgba(0,0,0,.5);
+    }
+    /* ── LIGHT ── */
+    html[data-theme="light"] {
+      --ink:      #1a1830;
+      --ink2:     #4a4870;
+      --ink3:     #9090b8;
+      --bg:       #f4f3fb;
+      --bg2:      #eceaf8;
+      --bg3:      #e2e0f4;
+      --accent:   #5b48e8;
+      --accent2:  #0891b2;
+      --gold:     #d97706;
+      --red:      #dc2626;
+      --border:   rgba(91,72,232,0.14);
+      --glow:     rgba(91,72,232,0.06);
+      --nav-bg:   rgba(244,243,251,.95);
+      --shadow:   rgba(26,24,48,.12);
+    }
+    /* ── SETTING BUTTON ── */
+    #setting {
+      position:fixed;bottom:28px;right:28px;z-index:500;
+      width:44px;height:44px;border-radius:50%;
+      background:var(--bg2);border:1px solid var(--border);
+      color:var(--ink2);font-size:18px;cursor:none;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 20px var(--shadow);
+      transition:background .2s,transform .25s,box-shadow .2s,border-color .2s;
+    }
+    #setting:hover{background:var(--bg3);transform:rotate(30deg) scale(1.08);border-color:var(--accent);box-shadow:0 6px 28px var(--shadow)}
+    /* ── THEME PANEL ── */
+    #theme-panel {
+      position:fixed;bottom:82px;right:28px;z-index:499;
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:12px;padding:6px;
+      box-shadow:0 12px 40px var(--shadow);
+      display:flex;flex-direction:column;gap:2px;
+      opacity:0;pointer-events:none;transform:translateY(8px) scale(.96);
+      transition:opacity .18s,transform .18s;min-width:148px;
+    }
+    #theme-panel.open{opacity:1;pointer-events:all;transform:translateY(0) scale(1)}
+    .theme-opt {
+      display:flex;align-items:center;gap:10px;
+      padding:9px 14px;border-radius:8px;border:none;
+      background:transparent;color:var(--ink2);
+      font-family:"DM Mono",monospace;font-size:12px;letter-spacing:.3px;
+      cursor:none;transition:background .15s,color .15s;text-align:left;width:100%;
+    }
+    .theme-opt:hover{background:var(--bg3);color:var(--ink)}
+    .theme-opt.active{background:rgba(124,106,247,.1);color:var(--accent)}
+    html[data-theme="light"] .theme-opt.active{background:rgba(91,72,232,.1);color:var(--accent)}
+    .theme-opt-icon{font-size:15px;flex-shrink:0}
+    .theme-divider{height:1px;background:var(--border);margin:3px 2px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      background:var(--bg);color:var(--ink);
+      font-family:'Crimson Pro',Georgia,serif;
+      overflow-x:hidden;min-height:100vh;
+      cursor:none;
+    }
+
+    /* ── CUSTOM CURSOR ── */
+    #cursor{
+      position:fixed;width:10px;height:10px;border-radius:50%;
+      background:var(--accent);pointer-events:none;z-index:9999;
+      transform:translate(-50%,-50%);transition:transform .1s,width .2s,height .2s,opacity .2s;
+      mix-blend-mode:screen;
+    }
+    #cursor-ring{
+      position:fixed;width:36px;height:36px;border-radius:50%;
+      border:1px solid rgba(124,106,247,.4);pointer-events:none;z-index:9998;
+      transform:translate(-50%,-50%);transition:transform .18s ease-out,width .25s,height .25s,border-color .2s;
+    }
+    body:has(a:hover) #cursor,body:has(button:hover) #cursor{width:18px;height:18px}
+    body:has(a:hover) #cursor-ring,body:has(button:hover) #cursor-ring{width:56px;height:56px;border-color:rgba(124,106,247,.7)}
+
+    /* ── CANVAS ── */
+    #canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+
+    /* ── NOISE OVERLAY ── */
+    body::before{
+      content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity:.4;
+    }
+
+    html[data-theme="light"] body::before{opacity:.18}
+    html[data-theme="light"] #canvas{opacity:.25}
+    /* transition all color properties */
+    body,nav,.app-card,.feat-item,.stat,.code-window,.code-titlebar,.code-body{transition:background .3s,color .3s,border-color .3s}
+    /* ── LAYOUT ── */
+    .wrap{position:relative;z-index:2;max-width:1140px;margin:0 auto;padding:0 32px}
+
+    /* ── NAV ── */
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:100;
+      padding:18px 40px;display:flex;align-items:center;gap:16px;
+      background:linear-gradient(to bottom,var(--nav-bg) 0%,transparent 100%);
+      backdrop-filter:blur(8px);
+    }
+    .nav-logo{
+      font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;
+      color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:10px;
+    }
+    .nav-logo-mark{
+      width:28px;height:28px;border-radius:6px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:900;color:#fff;font-family:'DM Mono',monospace;
+    }
+    .nav-links{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .nav-link{
+      padding:7px 16px;border-radius:6px;font-family:'DM Mono',monospace;
+      font-size:12px;color:var(--ink2);text-decoration:none;letter-spacing:.5px;
+      transition:color .15s,background .15s;
+    }
+    .nav-link:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+    .nav-link.cta{
+      background:var(--accent);color:#fff;font-weight:500;
+      transition:background .15s,transform .1s,box-shadow .15s;
+      box-shadow:0 0 20px rgba(124,106,247,.3);
+    }
+    .nav-link.cta:hover{background:#6c5ae0;transform:translateY(-1px);box-shadow:0 4px 28px rgba(124,106,247,.5)}
+
+    /* ── HERO ── */
+    #hero{
+      min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+      padding:120px 40px 80px;position:relative;overflow:hidden;
+    }
+    .hero-eyebrow{
+      font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;
+      color:var(--accent);text-transform:uppercase;margin-bottom:24px;
+      opacity:0;animation:fadeUp .6s .2s forwards;
+      display:flex;align-items:center;gap:10px;
+    }
+    .hero-eyebrow::before{content:'';width:32px;height:1px;background:var(--accent)}
+    .hero-title{
+      font-family:'Bebas Neue',sans-serif;
+      font-size:clamp(80px, 14vw, 200px);
+      line-height:.92;letter-spacing:-1px;
+      color:var(--ink);
+      opacity:0;animation:fadeUp .7s .35s forwards;
+      position:relative;
+    }
+    .hero-title .accent-line{
+      display:block;
+      background:linear-gradient(90deg,var(--accent),var(--accent2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      position:relative;
+    }
+    .hero-title .accent-line::after{
+      content:attr(data-text);
+      position:absolute;left:2px;top:2px;
+      background:linear-gradient(90deg,rgba(124,106,247,.2),rgba(34,211,238,.2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      animation:glitch 4s infinite;
+    }
+    @keyframes glitch{
+      0%,90%,100%{transform:none;opacity:0}
+      91%{transform:translate(-3px,1px) skewX(-1deg);opacity:.6}
+      93%{transform:translate(3px,-1px) skewX(1deg);opacity:.4}
+      95%{transform:translate(-1px,2px);opacity:.5}
+      97%{transform:translate(2px,-1px);opacity:.3}
+    }
+    .hero-sub{
+      font-size:clamp(18px,2.5vw,26px);color:var(--ink2);
+      font-weight:300;font-style:italic;max-width:560px;
+      line-height:1.5;margin-top:24px;
+      opacity:0;animation:fadeUp .7s .5s forwards;
+    }
+    .hero-ctas{
+      display:flex;gap:14px;margin-top:48px;flex-wrap:wrap;
+      opacity:0;animation:fadeUp .7s .65s forwards;
+    }
+    .btn-hero{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:14px 28px;border-radius:10px;
+      font-family:'DM Mono',monospace;font-size:13px;
+      text-decoration:none;transition:all .2s;letter-spacing:.3px;
+      border:none;cursor:none;
+    }
+    .btn-hero.primary{
+      background:var(--accent);color:#fff;
+      box-shadow:0 0 32px rgba(124,106,247,.35);
+    }
+    .btn-hero.primary:hover{background:#6c5ae0;transform:translateY(-2px);box-shadow:0 8px 40px rgba(124,106,247,.5)}
+    .btn-hero.secondary{
+      background:transparent;color:var(--ink);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .btn-hero.secondary:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);transform:translateY(-2px)}
+    .btn-hero svg{flex-shrink:0}
+
+    .hero-scroll{
+      position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+      display:flex;flex-direction:column;align-items:center;gap:8px;
+      color:var(--ink3);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;
+      opacity:0;animation:fadeIn 1s 1.2s forwards;
+    }
+    .hero-scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--ink3),transparent);animation:scrollPulse 2s infinite}
+    @keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.1)}}
+
+    /* ── DIVIDER ── */
+    .section-divider{
+      height:1px;background:linear-gradient(to right,transparent,var(--accent),transparent);
+      margin:0 40px;opacity:.25;
+    }
+
+    /* ── APPS SECTION ── */
+    #apps{padding:100px 40px;}
+    .section-label{
+      font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;
+      color:var(--accent);text-transform:uppercase;margin-bottom:16px;
+      display:flex;align-items:center;gap:10px;
+    }
+    .section-label::before{content:'';width:24px;height:1px;background:var(--accent)}
+    .section-title{
+      font-family:'Bebas Neue',sans-serif;font-size:clamp(42px,6vw,72px);
+      color:var(--ink);line-height:1;margin-bottom:56px;letter-spacing:.5px;
+    }
+    .section-title em{font-style:italic;color:var(--ink2);font-family:'Crimson Pro',serif}
+
+    .apps-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+
+    .app-card{
+      position:relative;padding:52px 48px;overflow:hidden;
+      background:var(--bg2);
+      transition:background .2s;
+      text-decoration:none;color:inherit;display:block;
+    }
+    .app-card:hover{background:var(--bg3)}
+    .app-card::before{
+      content:'';position:absolute;inset:0;
+      opacity:0;transition:opacity .3s;
+      pointer-events:none;
+    }
+    .app-card-editor::before{background:radial-gradient(ellipse at 20% 50%,rgba(124,106,247,.08) 0%,transparent 70%)}
+    .app-card-playground::before{background:radial-gradient(ellipse at 80% 50%,rgba(34,211,238,.08) 0%,transparent 70%)}
+    .app-card:hover::before{opacity:1}
+
+    /* top accent line */
+    .app-card::after{
+      content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      opacity:0;transition:opacity .3s;
+    }
+    .app-card-editor::after{background:linear-gradient(to right,var(--accent),transparent)}
+    .app-card-playground::after{background:linear-gradient(to right,var(--accent2),transparent)}
+    .app-card:hover::after{opacity:1}
+
+    .app-card-num{
+      font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);
+      letter-spacing:2px;margin-bottom:32px;display:flex;align-items:center;gap:8px;
+    }
+    .app-card-num::after{content:'';flex:1;max-width:40px;height:1px;background:var(--ink3)}
+
+    .app-icon{
+      width:56px;height:56px;border-radius:14px;margin-bottom:28px;
+      display:flex;align-items:center;justify-content:center;font-size:24px;
+      position:relative;
+    }
+    .app-icon-editor{background:linear-gradient(135deg,rgba(124,106,247,.2),rgba(124,106,247,.05));box-shadow:0 0 0 1px rgba(124,106,247,.2)}
+    .app-icon-playground{background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.05));box-shadow:0 0 0 1px rgba(34,211,238,.2)}
+
+    .app-name{
+      font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1px;
+      color:var(--ink);margin-bottom:8px;line-height:1;
+    }
+    .app-tagline{
+      font-family:'Crimson Pro',serif;font-size:18px;font-style:italic;
+      color:var(--ink2);margin-bottom:24px;font-weight:300;
+    }
+    .app-desc{
+      font-size:15px;color:var(--ink2);line-height:1.65;margin-bottom:36px;
+      font-weight:300;max-width:380px;
+    }
+    .app-features{display:flex;flex-direction:column;gap:8px;margin-bottom:40px}
+    .app-feat{
+      display:flex;align-items:center;gap:10px;
+      font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink2);
+    }
+    .app-feat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+    .feat-dot-editor{background:var(--accent)}
+    .feat-dot-playground{background:var(--accent2)}
+
+    .app-cta{
+      display:inline-flex;align-items:center;gap:10px;
+      font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.5px;
+      padding:12px 22px;border-radius:8px;text-decoration:none;
+      transition:all .2s;
+    }
+    .app-cta-editor{
+      color:var(--accent);border:1px solid rgba(124,106,247,.25);
+      background:rgba(124,106,247,.06);
+    }
+    .app-cta-editor:hover{background:rgba(124,106,247,.14);border-color:rgba(124,106,247,.5);transform:translateY(-1px)}
+    .app-cta-playground{
+      color:var(--accent2);border:1px solid rgba(34,211,238,.25);
+      background:rgba(34,211,238,.06);
+    }
+    .app-cta-playground:hover{background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);transform:translateY(-1px)}
+
+    .app-cta svg{transition:transform .2s}
+    .app-card:hover .app-cta svg{transform:translateX(4px)}
+
+    /* ── FEATURES STRIP ── */
+    #features{padding:80px 40px}
+    .features-grid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+      background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    }
+    .feat-item{
+      padding:36px 32px;background:var(--bg);
+      opacity:0;transform:translateY(20px);
+      transition:opacity .5s,transform .5s,background .2s;
+    }
+    .feat-item.visible{opacity:1;transform:translateY(0)}
+    .feat-item:hover{background:var(--bg2)}
+    .feat-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:2px;margin-bottom:16px}
+    .feat-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ink);margin-bottom:8px;letter-spacing:.5px}
+    .feat-body{font-size:13.5px;color:var(--ink2);line-height:1.6;font-weight:300}
+
+    /* ── STATS ── */
+    #stats{padding:80px 40px}
+    .stats-row{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .stat{
+      flex:1;padding:48px 36px;text-align:center;
+      background:var(--bg2);border-right:1px solid var(--border);
+      transition:background .2s;
+    }
+    .stat:last-child{border-right:none}
+    .stat:hover{background:var(--bg3)}
+    .stat-num{
+      font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .stat-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);letter-spacing:2px;margin-top:8px;text-transform:uppercase}
+
+    /* ── CODE PREVIEW ── */
+    #preview-section{padding:80px 40px}
+    .code-window{
+      background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+      box-shadow:0 40px 80px var(--shadow);
+    }
+    .code-titlebar{
+      display:flex;align-items:center;gap:8px;padding:14px 20px;
+      background:var(--bg3);border-bottom:1px solid var(--border);
+    }
+    .code-dot{width:12px;height:12px;border-radius:50%}
+    .code-dot-r{background:#f87171}.code-dot-y{background:#fbbf24}.code-dot-g{background:#34d399}
+    .code-filename{
+      margin-left:12px;font-family:'DM Mono',monospace;font-size:12px;
+      color:var(--ink2);letter-spacing:.5px;
+    }
+    .code-lang-badge{
+      margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;
+      color:var(--accent);background:rgba(124,106,247,.1);
+      padding:2px 8px;border-radius:4px;
+    }
+    .code-body{padding:32px;font-family:'DM Mono',monospace;font-size:13px;line-height:1.8;overflow-x:auto}
+    .t-kw{color:#c792ea}.t-fn{color:#82aaff}.t-str{color:#c3e88d}
+    .t-num{color:#f78c6c}.t-cm{color:#546e7a;font-style:italic}.t-punct{color:#89ddff}
+    .t-var{color:#ffcb6b}.t-prop{color:#7c6af7}
+    html[data-theme="light"] .t-kw{color:#7c3aed}
+    html[data-theme="light"] .t-fn{color:#1d4ed8}
+    html[data-theme="light"] .t-str{color:#166534}
+    html[data-theme="light"] .t-num{color:#9a3412}
+    html[data-theme="light"] .t-cm{color:#64748b}
+    html[data-theme="light"] .t-punct{color:#0369a1}
+    html[data-theme="light"] .t-var{color:#b45309}
+    html[data-theme="light"] .t-prop{color:#5b48e8}
+
+    /* ── FOOTER ── */
+    footer{
+      padding:64px 40px;border-top:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px;
+    }
+    .footer-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--ink3)}
+    .footer-links{display:flex;gap:24px;flex-wrap:wrap}
+    .footer-link{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink3);text-decoration:none;letter-spacing:.5px;transition:color .15s}
+    .footer-link:hover{color:var(--ink)}
+    .footer-copy{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);width:100%;text-align:center;margin-top:8px}
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+    /* ── MOBILE ── */
+    @media(max-width:800px){
+      nav{padding:16px 20px}
+      .nav-links .nav-link:not(.cta){display:none}
+      #hero{padding:100px 20px 80px}
+      #apps,#features,#stats,#preview-section,footer{padding-left:20px;padding-right:20px}
+      .apps-grid{grid-template-columns:1fr}
+      .features-grid{grid-template-columns:1fr}
+      .stats-row{flex-direction:column}
+      .stat{border-right:none;border-bottom:1px solid var(--border);padding:36px 24px}
+      .stat:last-child{border-bottom:none}
+      .app-card{padding:36px 28px}
+      .hero-scroll{display:none}
+      body{cursor:auto}
+      #cursor,#cursor-ring{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">G</div>
+    GENESIS
+  </a>
+  <div class="nav-links">
+    <a href="#apps" class="nav-link">Apps</a>
+    <a href="#features" class="nav-link">Features</a>
+    <a href="https://github.com/hpctav/Genesis" class="nav-link" target="_blank">GitHub</a>
+    <a href="editor.html" class="nav-link cta">Launch Editor →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="wrap">
+    <p class="hero-eyebrow">Open Source · Offline · Monaco Powered</p>
+    <h1 class="hero-title">
+      CODE<br>
+      <span class="accent-line" data-text="WITHOUT">WITHOUT</span>
+      LIMITS
+    </h1>
+    <p class="hero-sub">A Monaco-powered editor and live playground — built for the browser, works offline, runs everywhere.</p>
+    <div class="hero-ctas">
+      <a href="editor.html" class="btn-hero primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Open Editor
+      </a>
+      <a href="playground.html" class="btn-hero secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        Try Playground
+      </a>
+      <a href="https://github.com/hpctav/Genesis" class="btn-hero secondary" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.11.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.13 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    SCROLL
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- APPS SECTION -->
+<section id="apps">
+  <div class="wrap">
+    <p class="section-label">The Suite</p>
+    <h2 class="section-title">Two tools.<br><em>One vision.</em></h2>
+  </div>
+
+  <div class="apps-grid">
+    <!-- EDITOR -->
+    <a href="editor.html" class="app-card app-card-editor">
+      <div class="app-card-num">01 — EDITOR</div>
+      <div class="app-icon app-icon-editor">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c6af7" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <div class="app-name">Genesis<br>Editor</div>
+      <div class="app-tagline">The full power of VS Code, in your browser</div>
+      <p class="app-desc">
+        A complete Monaco-powered code editor with real file system access. 
+        Open folders, edit files, save directly to your device. Offline PWA. 
+        Feels like a native app.
+      </p>
+      <div class="app-features">
+        <div class="app-feat"><span class="app-feat-dot feat-dot-editor"></span>Monaco Editor (VS Code engine)</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-editor"></span>File System Access API</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-editor"></span>Multi-tab with file explorer</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-editor"></span>Offline PWA — works without internet</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-editor"></span>Drag & drop files and folders</div>
+      </div>
+      <span class="app-cta app-cta-editor">
+        Open Editor
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+    </a>
+
+    <!-- PLAYGROUND -->
+    <a href="playground.html" class="app-card app-card-playground">
+      <div class="app-card-num">02 — PLAYGROUND</div>
+      <div class="app-icon app-icon-playground">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.8"><polygon points="5,3 19,12 5,21"/></svg>
+      </div>
+      <div class="app-name">Genesis<br>Playground</div>
+      <div class="app-tagline">Write code. See it run. Instantly.</div>
+      <p class="app-desc">
+        A live coding sandbox with split-pane preview. HTML, CSS, JS run 
+        instantly in a real iframe. Markdown renders live. Python runs via Pyodide. 
+        Share your work with a URL.
+      </p>
+      <div class="app-features">
+        <div class="app-feat"><span class="app-feat-dot feat-dot-playground"></span>HTML / CSS / JS live preview</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-playground"></span>Python via Pyodide (in-browser)</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-playground"></span>Markdown live renderer</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-playground"></span>Console with REPL</div>
+        <div class="app-feat"><span class="app-feat-dot feat-dot-playground"></span>Share code via URL</div>
+      </div>
+      <span class="app-cta app-cta-playground">
+        Try Playground
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+    </a>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <p class="section-label">Under the hood</p>
+    <h2 class="section-title">Built different.<br><em>By design.</em></h2>
+    <div class="features-grid">
+      <div class="feat-item">
+        <div class="feat-num">— 01</div>
+        <div class="feat-title">Monaco Engine</div>
+        <p class="feat-body">The exact same editor engine that powers VS Code. Syntax highlighting, IntelliSense, multi-cursor, bracket matching — all included.</p>
+      </div>
+      <div class="feat-item">
+        <div class="feat-num">— 02</div>
+        <div class="feat-title">Offline PWA</div>
+        <p class="feat-body">Install as a Progressive Web App. Service worker caches everything — editor runs fully offline after first load. No internet needed.</p>
+      </div>
+      <div class="feat-item">
+        <div class="feat-num">— 03</div>
+        <div class="feat-title">Real Files</div>
+        <p class="feat-body">File System Access API lets you open actual folders from your device, read and write directly — no upload/download dance.</p>
+      </div>
+      <div class="feat-item">
+        <div class="feat-num">— 04</div>
+        <div class="feat-title">Live Preview</div>
+        <p class="feat-body">Playground renders HTML in a sandboxed iframe in real time. Console messages are forwarded, errors are captured and displayed.</p>
+      </div>
+      <div class="feat-item">
+        <div class="feat-num">— 05</div>
+        <div class="feat-title">Python In Browser</div>
+        <p class="feat-body">Pyodide brings CPython to WebAssembly. Run real Python code — stdout and stderr captured and shown in the console panel.</p>
+      </div>
+      <div class="feat-item">
+        <div class="feat-num">— 06</div>
+        <div class="feat-title">Zero Backend</div>
+        <p class="feat-body">Pure static files. No server, no database, no login. Deploy to any static host — GitHub Pages, Netlify, your own server. Just works.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats">
+  <div class="wrap">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">0</div><div class="stat-label">Backend Needed</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">Languages Supported</div></div>
+      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Files You Can Edit</div></div>
+      <div class="stat"><div class="stat-num">1</div><div class="stat-label">File to Deploy</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE PREVIEW -->
+<section id="preview-section">
+  <div class="wrap">
+    <p class="section-label">Open Source</p>
+    <h2 class="section-title" style="margin-bottom:32px">Pure HTML.<br><em>No build step.</em></h2>
+    <div class="code-window">
+      <div class="code-titlebar">
+        <div class="code-dot code-dot-r"></div>
+        <div class="code-dot code-dot-y"></div>
+        <div class="code-dot code-dot-g"></div>
+        <span class="code-filename">playground.html</span>
+        <span class="code-lang-badge">HTML</span>
+      </div>
+      <div class="code-body">
+<span class="t-cm">&lt;!-- One file. No dependencies. No npm install. --&gt;</span><br>
+<span class="t-punct">&lt;</span><span class="t-kw">script</span> <span class="t-prop">src</span><span class="t-punct">=</span><span class="t-str">"monaco/vs/loader.js"</span><span class="t-punct">&gt;&lt;/</span><span class="t-kw">script</span><span class="t-punct">&gt;</span><br><br>
+<span class="t-punct">&lt;</span><span class="t-kw">script</span><span class="t-punct">&gt;</span><br>
+&nbsp;&nbsp;<span class="t-fn">require</span><span class="t-punct">.</span><span class="t-fn">config</span><span class="t-punct">({</span> <span class="t-prop">paths</span><span class="t-punct">:</span> <span class="t-punct">{</span> <span class="t-str">vs</span><span class="t-punct">:</span> <span class="t-str">'monaco/vs'</span> <span class="t-punct">}</span> <span class="t-punct">});</span><br>
+&nbsp;&nbsp;<span class="t-fn">require</span><span class="t-punct">([</span><span class="t-str">'vs/editor/editor.main'</span><span class="t-punct">],</span> <span class="t-kw">function</span><span class="t-punct">() {</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-var">editor</span> <span class="t-punct">=</span> <span class="t-var">monaco</span><span class="t-punct">.</span><span class="t-prop">editor</span><span class="t-punct">.</span><span class="t-fn">create</span><span class="t-punct">(</span><span class="t-var">container</span><span class="t-punct">,</span> <span class="t-punct">{</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-prop">value</span><span class="t-punct">:</span> <span class="t-str">'// Start coding'</span><span class="t-punct">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-prop">language</span><span class="t-punct">:</span> <span class="t-str">'javascript'</span><span class="t-punct">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-prop">theme</span><span class="t-punct">:</span> <span class="t-str">'vs-dark'</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-punct">});</span><br>
+&nbsp;&nbsp;<span class="t-punct">});</span><br>
+<span class="t-punct">&lt;/</span><span class="t-kw">script</span><span class="t-punct">&gt;</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="wrap">
+  <div class="footer-logo">GENESIS</div>
+  <div class="footer-links">
+    <a href="editor.html" class="footer-link">Editor</a>
+    <a href="playground.html" class="footer-link">Playground</a>
+    <a href="https://github.com/hpctav/Genesis" class="footer-link" target="_blank">GitHub</a>
+  </div>
+  <p class="footer-copy">Built with Monaco · Deployed on GitHub Pages · No backend · No tracking · Free forever</p>
+</footer>
+
+<script>
+// ── CUSTOM CURSOR ──
+const cur = document.getElementById('cursor');
+const curRing = document.getElementById('cursor-ring');
+let mx = -100, my = -100, rx = -100, ry = -100;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+(function animCursor() {
+  rx += (mx - rx) * 0.14;
+  ry += (my - ry) * 0.14;
+  cur.style.left = mx + 'px'; cur.style.top = my + 'px';
+  curRing.style.left = rx + 'px'; curRing.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+
+// ── PARTICLE CANVAS ──
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() { this.reset(); this.y = Math.random() * H; }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = H + 10;
+    this.vx = (Math.random() - .5) * .4;
+    this.vy = -(Math.random() * .6 + .2);
+    this.size = Math.random() * 1.5 + .5;
+    this.life = 1;
+    this.decay = Math.random() * .003 + .001;
+    this.color = Math.random() > .5 ? '124,106,247' : '34,211,238';
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.life -= this.decay;
+    if (this.life <= 0 || this.y < -10) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${this.life * .6})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function animParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// ── SCROLL REVEAL ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: .1 });
+document.querySelectorAll('.feat-item').forEach(el => observer.observe(el));
+
+// ── THEME SYSTEM ──
+// Apply saved theme immediately (before DOM ready) to avoid flash
+(function() {
+  const saved = localStorage.getItem('genesis-theme') || 'auto';
+  const MQ = window.matchMedia('(prefers-color-scheme: light)');
+  const resolved = saved === 'auto' ? (MQ.matches ? 'light' : 'dark') : saved;
+  document.documentElement.setAttribute('data-theme', resolved);
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const panel = document.getElementById('theme-panel');
+  const settBtn = document.getElementById('setting');
+  const opts = document.querySelectorAll('.theme-opt');
+  const MQ = window.matchMedia('(prefers-color-scheme: light)');
+
+  function getSystemTheme() { return MQ.matches ? 'light' : 'dark'; }
+
+  function applyTheme(pref) {
+    const resolved = pref === 'auto' ? getSystemTheme() : pref;
+    html.setAttribute('data-theme', resolved);
+    opts.forEach(o => o.classList.toggle('active', o.dataset.themeOpt === pref));
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = resolved === 'light' ? '#f4f3fb' : '#0a0a12';
+  }
+
+  const saved = localStorage.getItem('genesis-theme') || 'auto';
+  applyTheme(saved);
+
+  opts.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pref = btn.dataset.themeOpt;
+      localStorage.setItem('genesis-theme', pref);
+      applyTheme(pref);
+      panel.classList.remove('open');
+      settBtn.classList.remove('active');
+    });
+  });
+
+  settBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('open');
+    settBtn.classList.toggle('active');
+  });
+
+  document.addEventListener('click', () => {
+    panel.classList.remove('open');
+    settBtn.classList.remove('active');
+  });
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  MQ.addEventListener('change', () => {
+    if (localStorage.getItem('genesis-theme') === 'auto') applyTheme('auto');
+  });
+});
+
+// ── SMOOTH NAV LINKS ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+
+<!-- SETTING BUTTON -->
+<button id="setting" title="Theme settings" aria-label="Theme settings">⚙️</button>
+
+<!-- THEME PANEL -->
+<div id="theme-panel" role="menu">
+  <button class="theme-opt active" data-theme-opt="dark">
+    <span class="theme-opt-icon">🌑</span> Dark
+  </button>
+  <div class="theme-divider"></div>
+  <button class="theme-opt" data-theme-opt="light">
+    <span class="theme-opt-icon">☀️</span> Light
+  </button>
+  <div class="theme-divider"></div>
+  <button class="theme-opt" data-theme-opt="auto">
+    <span class="theme-opt-icon">💻</span> Auto
+  </button>
+</div>
+</body>
+</html>
