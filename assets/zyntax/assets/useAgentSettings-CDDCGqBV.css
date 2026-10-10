@@ -1,0 +1,37 @@
+@theme {
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-danger: #f85149;
+}
+
+.light {
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-danger: #cf222e
+}
+
+.agent-auto-approve-bolt {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  filter: none;
+  box-shadow: none
+}
+
+.agent-auto-approve-bolt:hover {
+  color: var(--color-text-main)
+}
+
+.agent-auto-approve-bolt.is-active {
+  color: var(--color-success, #3fb950) !important
+}
+
+.agent-auto-approve-bolt svg {
+  color: inherit;
+  fill: currentColor;
+  stroke: currentColor
+}
+
+.light .agent-auto-approve-bolt.is-active {
+  color: var(--color-accent, #3b82f6) !important
+}

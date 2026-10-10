@@ -1,0 +1,74 @@
+.agent-markdown[data-v-1b9b5f3c] p {
+  margin: 0 0 .65rem
+}
+
+.agent-markdown[data-v-1b9b5f3c] p:last-child {
+  margin-bottom: 0
+}
+
+.agent-markdown[data-v-1b9b5f3c] ul,
+.agent-markdown[data-v-1b9b5f3c] ol {
+  margin: .45rem 0;
+  padding-left: 1.25rem
+}
+
+.agent-markdown[data-v-1b9b5f3c] ul {
+  list-style: disc
+}
+
+.agent-markdown[data-v-1b9b5f3c] ol {
+  list-style: decimal
+}
+
+.agent-markdown[data-v-1b9b5f3c] code {
+  border: 1px solid var(--color-border);
+  border-radius: .3rem;
+  background: var(--color-editor-bg);
+  padding: .1rem .3rem;
+  font-family: var(--font-mono);
+  font-size: .78rem
+}
+
+.agent-markdown[data-v-1b9b5f3c] pre {
+  margin: .6rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: .55rem;
+  background: var(--color-editor-bg);
+  padding: .75rem
+}
+
+.agent-markdown[data-v-1b9b5f3c] pre code {
+  border: 0;
+  padding: 0;
+  background: transparent
+}
+
+.agent-markdown[data-v-1b9b5f3c] a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px
+}
+
+.agent-markdown[data-v-1b9b5f3c] blockquote {
+  border-left: 2px solid var(--color-accent);
+  padding-left: .75rem;
+  color: var(--color-text-muted)
+}
+
+.agent-markdown-streaming[data-v-1b9b5f3c]:after {
+  display: inline-block;
+  width: .45rem;
+  height: .95rem;
+  margin-left: .2rem;
+  background: var(--color-accent);
+  content: "";
+  vertical-align: -.1rem;
+  animation: agent-caret-1b9b5f3c .8s steps(1) infinite
+}
+
+@keyframes agent-caret-1b9b5f3c {
+  50% {
+    opacity: 0
+  }
+}

@@ -1,0 +1,8 @@
+.codemirror-container .cm-editor {
+  height: 100%;
+  outline: none
+}
+
+.codemirror-container .cm-scroller {
+  overflow: auto
+}
