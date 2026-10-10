@@ -1,1 +1,1321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genesis Monaco Editor</title>
+<style>
+  :root{
+    --bg-panel:#1e1e1e;
+    --bg-sidebar:#252526;
+    --bg-editor:#1e1e1e;
+    --fg:#cccccc;
+    --fg-dim:#8a8a8a;
+    --accent:#3b82f6;
+    --border:#333;
+    --hover:#2a2a2a;
+    --active:#37373d;
+  }
+  [data-theme="light"]{
+    --bg-panel:#f3f3f3;
+    --bg-sidebar:#eeeeee;
+    --bg-editor:#ffffff;
+    --fg:#1e1e1e;
+    --fg-dim:#6b6b6b;
+    --border:#dcdcdc;
+    --hover:#e4e4e4;
+    --active:#d9d9d9;
+  }
+  *{box-sizing:border-box;}
+  html, body {
+    margin:0;
+    height:100%;
+    font-family:-apple-system, "Segoe UI", Arial, Helvetica, sans-serif;
+    background:var(--bg-panel);
+    color:var(--fg);
+    overflow:hidden;
+  }
 
+  /* === 1. TOOLBAR / MENU BAR (đặt dưới cùng màn hình) === */
+  .menu-bar {
+    display:flex;
+    justify-content:space-between;
+    background:var(--bg-panel);
+    border-top:1px solid var(--border);
+    color:var(--fg);
+    padding:.4rem .75rem;
+    font-size:.9rem;
+    align-items:center;
+    flex-shrink:0;
+    height:44px;
+    position:relative;
+    z-index:100;
+  }
+  .menu-left, .menu-center, .menu-right{
+    display:flex; 
+    align-items:center; 
+    gap:.15rem;
+  }
+  .menu-left { flex: 1; justify-content: flex-start; }
+  .menu-center { flex: 0 0 auto; justify-content: center; }
+  .menu-right { flex: 1; justify-content: flex-end; }
+
+  .menu-bar button, .menu-bar .btn {
+    background:none;
+    border:none;
+    color:var(--fg-dim);
+    padding:.4rem .6rem;
+    cursor:pointer;
+    border-radius:4px;
+    transition:background .15s,color .15s;
+    font-size:1.1rem;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+  }
+  .menu-bar button:hover:not(:disabled),
+  .menu-bar .btn:hover,
+  .menu-bar button:focus-visible,
+  .menu-bar .btn:focus-visible {
+    background:var(--hover);
+    color:var(--fg);
+    outline:none;
+  }
+  .menu-bar button.active{
+    background:var(--active);
+    color:var(--fg);
+  }
+  .menu-bar button:disabled{opacity:.35; cursor:default;}
+  .logo {font-weight:600; font-size:.95rem; margin-left:.4rem; letter-spacing:.02em;}
+  .save-indicator{font-size:.75rem; color:var(--fg-dim); margin-right:.5rem; min-width:70px;}
+
+  /* Kích thước biểu tượng SVG trang chủ */
+  .home-icon {
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
+  }
+
+  /* === APP LAYOUT (cột dọc, toolbar ở dưới cùng) === */
+  .App { height:100vh; height:100dvh; display:flex; flex-direction:column; }
+
+  /* === 2. WORKSPACE BỐ CỤC === */
+  .workspace {display:flex; flex:1; min-height:0; position:relative; overflow:hidden;}
+
+  /* === 3. MENU 3 GẠCH BÊN TRÁI (SIDEBAR FILES) === */
+  .sidebar-left {
+    position:fixed;
+    top:0;
+    bottom:68px; /* chừa chỗ cho statusbar (24px) + toolbar dưới cùng (44px) */
+    left:-260px; /* Giấu sang trái */
+    width:260px;
+    background:var(--bg-sidebar);
+    color:var(--fg-dim);
+    padding:.75rem;
+    overflow-y:auto;
+    border-right:1px solid var(--border);
+    font-size:.9rem;
+    z-index:90;
+    transition:left .3s ease;
+    box-shadow:4px 0 15px rgba(0,0,0,.3);
+  }
+  .sidebar-left.open {
+    left:0; /* Trượt vào màn hình */
+  }
+
+  /* === 4. MENU 3 GẠCH BÊN PHẢI (TOOLS MENU) === */
+  .sidebar-right {
+    position:fixed;
+    top:0;
+    bottom:68px; /* chừa chỗ cho statusbar (24px) + toolbar dưới cùng (44px) */
+    right:-280px; /* Giấu sang phải */
+    width:280px;
+    background:var(--bg-sidebar);
+    color:var(--fg-dim);
+    padding:.75rem;
+    overflow-y:auto;
+    border-left:1px solid var(--border);
+    font-size:.9rem;
+    z-index:90;
+    transition:right .3s ease;
+    box-shadow:-4px 0 15px rgba(0,0,0,.3);
+  }
+  .sidebar-right.open {
+    right:0; /* Trượt vào màn hình */
+  }
+
+  /* === NỘI DUNG BÊN TRONG CÁC MENU === */
+  .menu-title {
+    margin:.2rem .4rem .75rem;
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-weight:600;
+    color:var(--fg-dim);
+    border-bottom:1px solid var(--border);
+    padding-bottom:.4rem;
+  }
+  
+  .file-list{list-style:none;padding:0;margin:0 0 .75rem;}
+  .file-list li{
+    padding:.4rem .5rem;
+    cursor:pointer;
+    border-radius:4px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.3rem;
+    color:var(--fg-dim);
+  }
+  .file-list li:hover{background:var(--hover); color:var(--fg);}
+  .file-list li.active{background:var(--active); color:var(--fg);}
+  .file-list li .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .file-list li{justify-content:flex-start; white-space:nowrap; -webkit-user-select:none; user-select:none;}
+  .file-list li .tw{width:.9rem; text-align:center; font-size:.6rem; flex:none;}
+  .file-list li .ico{flex:none;}
+  .file-list li .more{
+    flex:none; margin-left:auto; padding:.1rem .45rem; border-radius:4px;
+    color:var(--fg-dim); font-size:1rem; line-height:1;
+  }
+  .file-list li .more:hover{background:var(--active); color:var(--fg);}
+  .file-list li .unsaved{color:var(--accent); font-size:.7rem;}
+  .tree-actions{display:flex; gap:.25rem; margin:0 0 .5rem;}
+  .tree-actions button{
+    flex:1; background:var(--hover); border:1px solid var(--border);
+    color:var(--fg); border-radius:6px; padding:.4rem 0; cursor:pointer; font-size:.85rem;
+  }
+  .tree-actions button:hover{border-color:var(--accent);}
+  .tree-actions button[hidden]{display:none;}
+  .root-label{
+    font-size:.75rem; color:var(--fg-dim); padding:.1rem .3rem .5rem;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .ctx-menu{
+    position:fixed; z-index:200; min-width:170px; background:var(--bg-panel);
+    border:1px solid var(--border); border-radius:8px; padding:4px;
+    box-shadow:0 6px 24px rgba(0,0,0,.4); display:flex; flex-direction:column;
+  }
+  .ctx-menu[hidden]{display:none;}
+  .ctx-menu button{
+    background:none; border:none; color:var(--fg); text-align:left;
+    padding:.6rem .7rem; border-radius:5px; cursor:pointer; font-size:.85rem;
+  }
+  .ctx-menu button:hover{background:var(--hover);}
+  .ctx-menu button.danger{color:#e5484d;}
+
+  /* Chi tiết các mục Tools Menu Right */
+  .group-label{
+    font-size:.65rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--fg-dim);
+    padding:.5rem .2rem .3rem;
+    font-weight:600;
+  }
+  .item{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--fg);
+    padding:.55rem .5rem;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:.85rem;
+    text-align:left;
+  }
+  .item:hover{background:var(--hover);}
+  .item.active{background:var(--active);}
+  .item .icon{width:1.3em; text-align:center;}
+  .item .check{margin-left:auto; opacity:0; font-size:.8rem;}
+  .item.active .check{opacity:1;}
+  .divider{height:1px; background:var(--border); margin:.5rem 0;}
+  .view-row{display:flex; gap:.3rem; padding:.2rem 0 .4rem;}
+  .view-row button{
+    flex:1;
+    background:var(--hover);
+    border:1px solid var(--border);
+    border-radius:6px;
+    color:var(--fg-dim);
+    padding:.4rem 0;
+    font-size:.85rem;
+    cursor:pointer;
+  }
+  .view-row button.active{background:var(--active); color:var(--fg); border-color:var(--accent);}
+  .row-inline{display:flex; align-items:center; justify-content:space-between; padding:.4rem .2rem;}
+  select.mini{
+    background:var(--hover);
+    color:var(--fg);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:.3rem .4rem;
+    font-size:.8rem;
+  }
+
+  /* === 5. EDITOR AREA === */
+  .editor-area{
+    flex:1;
+    background:var(--bg-editor);
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    height:100%;
+  }
+  .tabs{
+    display:flex;
+    background:var(--bg-panel);
+    border-bottom:1px solid var(--border);
+    overflow-x:auto;
+    flex-shrink:0;
+  }
+  .tab{
+    display:flex;
+    align-items:center;
+    gap:.4rem;
+    padding:.45rem .8rem;
+    font-size:.82rem;
+    color:var(--fg-dim);
+    border-right:1px solid var(--border);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .tab.active{background:var(--bg-editor); color:var(--fg);}
+  .tab:hover{color:var(--fg);}
+  .tab .dot{width:6px;height:6px;border-radius:50%;background:var(--accent); display:none;}
+  .tab.dirty .dot{display:inline-block;}
+  .tab .x{opacity:.5; font-size:.7rem; padding:0 .15rem; border-radius:3px;}
+  .tab .x:hover{opacity:1; background:var(--hover);}
+
+  .panes{flex:1; display:flex; min-height:0;}
+  #editor{flex:1; min-width:0;}
+  #preview-wrap{
+    flex:1;
+    display:none;
+    border-left:1px solid var(--border);
+    background:#fff;
+  }
+  #preview{width:100%; height:100%; border:none; background:#fff;}
+  .mode-preview #editor{display:none;}
+  .mode-preview #preview-wrap{display:block;}
+  .mode-split #editor{flex:1;}
+  .mode-split #preview-wrap{display:block; flex:1;}
+
+  .statusbar{
+    height:24px;
+    background:var(--accent);
+    color:#fff;
+    font-size:.72rem;
+    display:flex;
+    align-items:center;
+    padding:0 .8rem;
+    justify-content:space-between;
+    flex-shrink:0;
+  }
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:4px;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+</head>
+<body>
+<div class="App">
+  <!-- KHUNG WORKSPACE CHÍNH -->
+  <div class="workspace" id="workspace">
+    
+    <!-- MENU 3 GẠCH BÊN TRÁI: DANH SÁCH FILE -->
+    <aside class="sidebar-left" id="leftSidebar">
+      <div class="menu-title">Explorer</div>
+      <div class="tree-actions">
+        <button id="btnOpenDisk" title="Mở thư mục trên máy (ghi trực tiếp)" onclick="openDisk()">📂</button>
+        <button title="File mới" onclick="createFile('')">📄＋</button>
+        <button title="Thư mục mới" onclick="createFolder('')">📁＋</button>
+        <button id="btnRescan" title="Tải lại từ máy" onclick="rescan()" hidden>↻</button>
+        <button id="btnCloseDisk" title="Đóng thư mục trên máy" onclick="closeDisk()" hidden>⏏</button>
+      </div>
+      <div class="root-label" id="rootLabel"></div>
+      <ul class="file-list" id="fileList"></ul>
+      <div class="ctx-menu" id="ctxMenu" hidden></div>
+    </aside>
+
+    <!-- MENU 3 GẠCH BÊN PHẢI: CÔNG CỤ & CÀI ĐẶT -->
+    <aside class="sidebar-right" id="rightSidebar">
+      <div class="menu-title">Công cụ & Cài đặt</div>
+      
+      <div class="group-label">Hành động</div>
+      <button class="item" onclick="saveAll(); toggleRightSidebar(false)"><span class="icon">💾</span>Lưu (Ctrl+S)</button>
+      <button class="item" onclick="formatCurrent(); toggleRightSidebar(false)"><span class="icon">🪄</span>Định dạng code</button>
+      <button class="item" onclick="clearCurrent()"><span class="icon">🧹</span>Xoá nội dung (Clear)</button>
+      <button class="item" onclick="resetFile(project.activeId)"><span class="icon">🔄</span>Reset file hiện tại</button>
+      <button class="item" onclick="downloadCurrent(); toggleRightSidebar(false)"><span class="icon">⬇️</span>Tải file hiện tại</button>
+      <button class="item" onclick="downloadBundle(); toggleRightSidebar(false)"><span class="icon">📦</span>Tải bundle HTML</button>
+
+      <div class="divider"></div>
+      <div class="group-label">Chế độ xem</div>
+      <div class="view-row">
+        <button id="btnEditorMode" class="active" onclick="setViewMode('editor')">📝 Code</button>
+        <button id="btnSplitMode" onclick="setViewMode('split')">🏗️ Split</button>
+        <button id="btnPreviewMode" onclick="setViewMode('preview')">📄 Xem</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="group-label">Tuỳ chỉnh Editor</div>
+      <div class="row-inline">
+        <span>Cỡ chữ</span>
+        <select class="mini" id="fontSizeSelect" onchange="setFontSize(this.value)">
+          <option value="12">12px</option>
+          <option value="14" selected>14px</option>
+          <option value="16">16px</option>
+          <option value="18">18px</option>
+        </select>
+      </div>
+      <button class="item active" id="btnMinimap" onclick="toggleMinimap()"><span class="icon">🗺</span>Minimap<span class="check">✓</span></button>
+      <button class="item active" id="bnt-wrap" onclick="toggleWrap()">
+  <span class="icon">§</span>
+  <span class="label">Wrap</span>
+  <span class="check">✓</span>
+</button>
+      <button class="item" onclick="toggleTheme()"><span class="icon">🌓</span>Đổi giao diện sáng/tối</button>
+    </aside>
+
+    <!-- KHUNG SOẠN THẢO CODE -->
+    <main class="editor-area" id="editorArea">
+      <div class="tabs" id="tabs"></div>
+      <div class="panes">
+        <div id="editor"></div>
+        <div id="preview-wrap"><iframe id="preview" sandbox="allow-scripts allow-modals"></iframe></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- THANH TRẠNG THÁI -->
+  <div class="statusbar">
+    <span id="statusLeft">Ready</span>
+    <span id="statusRight">HTML</span>
+  </div>
+
+  <!-- THANH TOOLBAR CHÍNH: đặt dưới cùng màn hình -->
+  <nav class="menu-bar">
+    <div class="menu-left">
+      <!-- Nút 3 gạch Trái -->
+      <button id="btnLeftToggle" title="Files" onclick="toggleLeftSidebar()">☰</button>
+      <span class="logo">Genesis</span>
+    </div>
+
+    <!-- Nút Home Căn Giữa Giữa Hai Menu -->
+    <div class="menu-center">
+      <a href="./assets/monaco/index.html" class="btn home-btn" title="Về Trang Chủ" aria-label="Trang chủ">
+        <svg class="home-icon" viewBox="0 0 576 512">
+          <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 1 21 7L564.8 231.5c8 7 12 15 11 24z" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="menu-right">
+      <span class="save-indicator" id="saveIndicator">Saved</span>
+      <!-- Nút 3 gạch Phải -->
+      <button id="btnRightToggle" title="Tools" onclick="toggleRightSidebar()">☰</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+const STORAGE_KEY = "genesis-editor-project";
+
+const LANG_BY_EXT = {
+  html:"html", htm:"html", css:"css", js:"javascript", mjs:"javascript", jsx:"javascript",
+  json:"json", md:"markdown", ts:"typescript", tsx:"typescript", txt:"plaintext",
+  xml:"xml", svg:"xml", yml:"yaml", yaml:"yaml"
+};
+const FILE_ICON = { html:"🌐", htm:"🌐", css:"🎨", js:"📜", mjs:"📜", json:"🧾", md:"📝" };
+
+/* Khi mở thư mục thật trên máy: bỏ qua các thư mục/file này, file nhị phân và file quá lớn */
+const IGNORE_DIRS = new Set([".git", "node_modules"]);
+const IGNORE_FILES = new Set([".DS_Store", "Thumbs.db"]);
+const BIN_RE = /\.(png|jpe?g|gif|webp|ico|bmp|pdf|zip|gz|mp[34]|wav|ogg|woff2?|ttf|otf|eot|exe|dll|so|wasm)$/i;
+const MAX_FILES = 400;
+const MAX_SIZE = 1024 * 1024;
+
+function extOf(name){
+  const m = name.split(".");
+  return m.length > 1 ? m.pop().toLowerCase() : "txt";
+}
+function langOf(name){ return LANG_BY_EXT[extOf(name)] || "plaintext"; }
+function baseName(p){ return p.split("/").pop(); }
+function dirName(p){ const i = p.lastIndexOf("/"); return i < 0 ? "" : p.slice(0, i); }
+
+function defaultProject(){
+  return {
+    activeId: "f1",
+    open: ["f1", "f2", "f3"],
+    dirs: [],
+    files: [
+      { id:"f1", name:"index.html", content:
+`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Playground</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Xin chào 👋</h1>
+  <p>Sửa file bên trái, xem preview bên phải.</p>
+  <script src="script.js"><\/script>
+</body>
+</html>` },
+      { id:"f2", name:"style.css", content:
+`body{
+  font-family: sans-serif;
+  background: #111;
+  color: #eee;
+  padding: 2rem;
+}
+h1{ color: #3b82f6; }` },
+      { id:"f3", name:"script.js", content:
+`console.log("Playground ready.");` }
+    ]
+  };
+}
+
+let project = loadProject();
+let editor, monacoRef;
+let viewMode = "editor";
+let dirty = false;
+let saveTimer = null;
+let previewTimer = null;
+let rootH = null;          // handle thư mục thật trên máy (null = dự án lưu trong trình duyệt)
+let virtualBackup = null;  // dự án trong trình duyệt, giữ lại khi đang mở thư mục máy
+let expanded = new Set();  // các thư mục đang mở trong cây
+
+function normalizeProject(p){
+  if(!Array.isArray(p.dirs)) p.dirs = [];
+  p.files.forEach(f => { if(typeof f.content !== "string") f.content = ""; });
+  if(!Array.isArray(p.open)) p.open = p.files.map(f => f.id);
+  p.open = p.open.filter(id => p.files.some(f => f.id === id));
+  if(!p.files.some(f => f.id === p.activeId)) p.activeId = p.files[0].id;
+  if(!p.open.includes(p.activeId)) p.open.push(p.activeId);
+  return p;
+}
+
+function loadProject(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.files) && parsed.files.length) return normalizeProject(parsed);
+    }
+  }catch(e){ console.warn("Could not load saved project", e); }
+  return defaultProject();
+}
+
+/* === LƯU: thư mục máy -> ghi thẳng vào file; dự án ảo -> localStorage === */
+async function dirHandleOf(path, create){
+  let h = rootH;
+  if(!path) return h;
+  for(const part of path.split("/")) h = await h.getDirectoryHandle(part, { create: !!create });
+  return h;
+}
+
+async function writeDisk(f){
+  const dh = await dirHandleOf(dirName(f.name), true);
+  const fh = await dh.getFileHandle(baseName(f.name), { create:true });
+  const w = await fh.createWritable();
+  await w.write(f.content);
+  await w.close();
+}
+
+async function persist(){
+  if(rootH){
+    try{
+      for(const f of project.files){
+        if(f.unsaved){ await writeDisk(f); f.unsaved = false; }
+      }
+      setSaveIndicator("Saved " + new Date().toLocaleTimeString());
+      dirty = false;
+      markActiveTabDirty(false);
+    }catch(e){
+      console.error(e);
+      setSaveIndicator("Save failed");
+    }
+    return;
+  }
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+    setSaveIndicator("Saved " + new Date().toLocaleTimeString());
+    dirty = false;
+    markActiveTabDirty(false);
+  }catch(e){
+    setSaveIndicator("Save failed");
+  }
+}
+
+function setSaveIndicator(text){
+  document.getElementById("saveIndicator").textContent = text;
+}
+
+function fail(e){
+  console.error(e);
+  alert("Lỗi: " + ((e && e.message) || e));
+}
+
+function getActiveFile(){
+  return project.files.find(f => f.id === project.activeId) || project.files[0];
+}
+
+require.config({ paths:{ vs:"https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs" } });
+require(["vs/editor/editor.main"], function() {
+  monacoRef = monaco;
+  const active = getActiveFile();
+  editor = monaco.editor.create(document.getElementById('editor'), {
+    value: active.content,
+    language: langOf(active.name),
+    theme: document.documentElement.getAttribute("data-theme") === "light" ? "vs" : "vs-dark",
+    automaticLayout: true,
+    fontSize: 14,
+    tabSize: 2,
+    insertSpaces: true,
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    smoothScrolling: true
+  });
+
+  editor.onDidChangeModelContent(() => {
+    const f = getActiveFile();
+    f.content = editor.getValue();
+    if(rootH) f.unsaved = true;
+    dirty = true;
+    markActiveTabDirty(true);
+    setSaveIndicator("Editing…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persist, 800);
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(refreshPreview, 300);
+  });
+
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveAll);
+  editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, formatCurrent);
+
+  editor.onDidChangeCursorPosition(e => {
+    document.getElementById("statusLeft").textContent =
+      `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+  });
+
+  initExpanded();
+  renderAll();
+});
+
+function setEditorModel(f){
+  const old = editor.getModel();
+  editor.setModel(monacoRef.editor.createModel(f.content, langOf(f.name)));
+  if(old) old.dispose();
+  document.getElementById("statusRight").textContent = langOf(f.name).toUpperCase();
+}
+
+function switchFile(id, skipCapture){
+  if(!editor) return;
+  if(!skipCapture){
+    const cur = getActiveFile();
+    if(cur) cur.content = editor.getValue();
+  }
+  project.activeId = id;
+  if(!project.open.includes(id)) project.open.push(id);
+  const f = getActiveFile();
+  expandAncestors(f.name);
+  setEditorModel(f);
+  renderAll();
+}
+
+function afterProjectReplaced(){
+  const f = getActiveFile();
+  expandAncestors(f.name);
+  setEditorModel(f);
+  renderAll();
+}
+
+function renderAll(){
+  renderFileList();
+  renderTabs();
+  refreshPreview();
+}
+
+/* === XỬ LÝ MỞ/ĐÓNG 2 MENU 3 GẠCH TRÁI & PHẢI === */
+function toggleLeftSidebar(force){
+  const sidebar = document.getElementById("leftSidebar");
+  const isOpen = sidebar.classList.contains("open");
+  const next = typeof force === "boolean" ? force : !isOpen;
+  sidebar.classList.toggle("open", next);
+  document.getElementById("btnLeftToggle").classList.toggle("active", next);
+}
+
+function toggleRightSidebar(force){
+  const sidebar = document.getElementById("rightSidebar");
+  const isOpen = sidebar.classList.contains("open");
+  const next = typeof force === "boolean" ? force : !isOpen;
+  sidebar.classList.toggle("open", next);
+  document.getElementById("btnRightToggle").classList.toggle("active", next);
+}
+
+/* === LẮNG NGHE SỰ KIỆN CLICK TOÀN TRANG (ĐÓNG KHI CLICK RA NGOÀI) === */
+document.addEventListener("pointerdown", (e) => {
+  const ctx = document.getElementById("ctxMenu");
+  if (!ctx.hidden && !ctx.contains(e.target)) hideCtx();
+
+  const leftSidebar = document.getElementById("leftSidebar");
+  const btnLeft = document.getElementById("btnLeftToggle");
+  if (leftSidebar.classList.contains("open")) {
+    if (!leftSidebar.contains(e.target) && !btnLeft.contains(e.target)) {
+      toggleLeftSidebar(false);
+    }
+  }
+
+  const rightSidebar = document.getElementById("rightSidebar");
+  const btnRight = document.getElementById("btnRightToggle");
+  if (rightSidebar.classList.contains("open")) {
+    if (!rightSidebar.contains(e.target) && !btnRight.contains(e.target)) {
+      toggleRightSidebar(false);
+    }
+  }
+}, true);
+
+/* === CÂY THƯ MỤC === */
+function initExpanded(){
+  expanded = new Set();
+  project.dirs.forEach(d => expanded.add(d.split("/")[0]));
+  project.files.forEach(f => { if(f.name.includes("/")) expanded.add(f.name.split("/")[0]); });
+  expandAncestors(getActiveFile().name);
+}
+
+function expandAncestors(path){
+  let acc = "";
+  for(const part of dirName(path).split("/").filter(Boolean)){
+    acc = acc ? acc + "/" + part : part;
+    expanded.add(acc);
+  }
+}
+
+function buildTree(){
+  const root = { dirs:new Map(), files:[] };
+  const ensure = (path) => {
+    let n = root, acc = "";
+    if(!path) return n;
+    for(const part of path.split("/")){
+      acc = acc ? acc + "/" + part : part;
+      if(!n.dirs.has(part)) n.dirs.set(part, { name:part, path:acc, dirs:new Map(), files:[] });
+      n = n.dirs.get(part);
+    }
+    return n;
+  };
+  project.dirs.forEach(ensure);
+  project.files.forEach(f => ensure(dirName(f.name)).files.push(f));
+  return root;
+}
+
+function updateTreeHeader(){
+  document.getElementById("rootLabel").textContent = rootH
+    ? "📂 " + rootH.name + " · ghi trực tiếp vào máy"
+    : "🗂 Dự án (lưu trong trình duyệt)";
+  document.getElementById("btnRescan").hidden = !rootH;
+  document.getElementById("btnCloseDisk").hidden = !rootH;
+  const b = document.getElementById("btnOpenDisk");
+  const ok = !!window.showDirectoryPicker;
+  b.style.opacity = ok ? "" : ".4";
+  b.title = ok ? "Mở thư mục trên máy (ghi trực tiếp)" : "Trình duyệt này chưa hỗ trợ mở thư mục trên máy";
+}
+
+function makeRow(depth, tw, ico, label, active){
+  const li = document.createElement("li");
+  li.className = active ? "active" : "";
+  li.style.paddingLeft = (0.4 + depth * 0.9) + "rem";
+  const a = document.createElement("span"); a.className = "tw"; a.textContent = tw;
+  const b = document.createElement("span"); b.className = "ico"; b.textContent = ico;
+  const c = document.createElement("span"); c.className = "fname"; c.textContent = label;
+  const m = document.createElement("span"); m.className = "more"; m.textContent = "⋯"; m.title = "Tuỳ chọn";
+  li.append(a, b, c, m);
+  return li;
+}
+
+function renderFileList(){
+  hideCtx();
+  updateTreeHeader();
+  const ul = document.getElementById("fileList");
+  ul.innerHTML = "";
+  const walk = (node, depth) => {
+    [...node.dirs.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
+      const isOpen = expanded.has(d.path);
+      const li = makeRow(depth, isOpen ? "▼" : "▶", isOpen ? "📂" : "📁", d.name, false);
+      const more = li.querySelector(".more");
+      li.onclick = () => { isOpen ? expanded.delete(d.path) : expanded.add(d.path); renderFileList(); };
+      more.onclick = (ev) => { ev.stopPropagation(); showCtx(more, "dir", d.path); };
+      li.oncontextmenu = (ev) => { ev.preventDefault(); showCtx(more, "dir", d.path); };
+      ul.appendChild(li);
+      if(isOpen) walk(d, depth + 1);
+    });
+    [...node.files].sort((a, b) => baseName(a.name).localeCompare(baseName(b.name))).forEach(f => {
+      const li = makeRow(depth, "", FILE_ICON[extOf(f.name)] || "📄", baseName(f.name), f.id === project.activeId);
+      const more = li.querySelector(".more");
+      li.title = f.name;
+      li.onclick = () => { switchFile(f.id); toggleLeftSidebar(false); };
+      more.onclick = (ev) => { ev.stopPropagation(); showCtx(more, "file", f.id); };
+      li.oncontextmenu = (ev) => { ev.preventDefault(); showCtx(more, "file", f.id); };
+      ul.appendChild(li);
+    });
+  };
+  walk(buildTree(), 0);
+}
+
+/* === MENU NGỮ CẢNH (nút ⋯ hoặc chuột phải / nhấn giữ) === */
+function showCtx(anchor, kind, key){
+  const m = document.getElementById("ctxMenu");
+  m.innerHTML = "";
+  const add = (label, fn, danger) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    if(danger) b.className = "danger";
+    b.onclick = () => { hideCtx(); fn(); };
+    m.appendChild(b);
+  };
+  if(kind === "dir"){
+    add("📄 File mới trong thư mục", () => createFile(key));
+    add("📁 Thư mục con mới", () => createFolder(key));
+    add("✎ Đổi tên / di chuyển", () => renameDir(key));
+    add("🗑 Xoá thư mục", () => deleteDir(key), true);
+  }else{
+    add("✎ Đổi tên / di chuyển", () => renameFile(key));
+    if(!rootH && defaultProject().files.some(x => x.id === key)) add("↺ Reset về mặc định", () => resetFile(key));
+    add("🗑 Xoá file", () => deleteFile(key), true);
+  }
+  m.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(4, Math.min(r.right - w, window.innerWidth - w - 4)) + "px";
+  m.style.top = Math.max(4, Math.min(r.bottom + 2, window.innerHeight - h - 4)) + "px";
+}
+
+function hideCtx(){
+  const m = document.getElementById("ctxMenu");
+  if(m) m.hidden = true;
+}
+
+/* === TAB: chỉ hiện các file đang mở === */
+function renderTabs(){
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  project.open.forEach(id => {
+    const f = project.files.find(x => x.id === id);
+    if(!f) return;
+    const t = document.createElement("div");
+    t.className = "tab" + (id === project.activeId ? " active" : "") + (f.unsaved ? " dirty" : "");
+    t.dataset.id = id;
+    t.title = f.name;
+    t.onclick = () => switchFile(id);
+    const dot = document.createElement("span"); dot.className = "dot";
+    const nm = document.createElement("span"); nm.textContent = baseName(f.name);
+    const x = document.createElement("span"); x.className = "x"; x.textContent = "✕";
+    x.onclick = (ev) => { ev.stopPropagation(); closeTab(id); };
+    t.append(dot, nm, x);
+    tabs.appendChild(t);
+  });
+}
+
+function closeTab(id){
+  if(project.open.length <= 1) return;
+  const i = project.open.indexOf(id);
+  project.open.splice(i, 1);
+  if(project.activeId === id){
+    switchFile(project.open[Math.min(i, project.open.length - 1)]);
+  }else{
+    renderTabs();
+  }
+  if(!rootH) persist();
+}
+
+function markActiveTabDirty(isDirty){
+  document.querySelectorAll(".tab").forEach(t => {
+    if(t.dataset.id === project.activeId) t.classList.toggle("dirty", isDirty);
+  });
+}
+
+/* === TIỆN ÍCH ĐƯỜNG DẪN === */
+function cleanPath(p){
+  if(p == null) return "";
+  p = p.trim().replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
+  if(!p) return "";
+  if(p.split("/").some(s => s === "." || s === ".." || /[:*?"<>|]/.test(s))){
+    alert('Tên không hợp lệ (không dùng "." ".." hoặc các ký tự : * ? " < > |).');
+    return "";
+  }
+  return p;
+}
+function fileExists(p){ return project.files.some(f => f.name === p); }
+function dirExists(p){
+  return project.dirs.some(d => d === p || d.startsWith(p + "/")) ||
+         project.files.some(f => f.name.startsWith(p + "/"));
+}
+function blockedByFile(p){
+  const parts = p.split("/");
+  let acc = "";
+  for(let i = 0; i < parts.length - 1; i++){
+    acc = acc ? acc + "/" + parts[i] : parts[i];
+    if(fileExists(acc)) return true;
+  }
+  return false;
+}
+function taken(p){ return fileExists(p) || dirExists(p) || blockedByFile(p); }
+
+/* === TẠO / ĐỔI TÊN / XOÁ === */
+async function createFile(prefix){
+  const p = cleanPath(prompt("Đường dẫn file mới (vd: about.html hoặc js/utils.js):",
+    (prefix ? prefix + "/" : "") + "untitled.txt"));
+  if(!p) return;
+  if(taken(p)){ alert("Tên hoặc đường dẫn đã tồn tại."); return; }
+  try{
+    if(rootH){
+      await writeDisk({ name:p, content:"" });
+      await rescan({}, p);
+    }else{
+      const id = "f" + Date.now() + Math.random().toString(36).slice(2, 6);
+      project.files.push({ id, name:p, content:"" });
+      switchFile(id);
+      persist();
+    }
+    toggleLeftSidebar(false);
+  }catch(e){ fail(e); }
+}
+
+async function createFolder(prefix){
+  const p = cleanPath(prompt("Đường dẫn thư mục mới:", (prefix ? prefix + "/" : "") + "thu-muc-moi"));
+  if(!p) return;
+  if(taken(p)){ alert("Tên hoặc đường dẫn đã tồn tại."); return; }
+  try{
+    expandAncestors(p + "/x");
+    expanded.add(p);
+    if(rootH){
+      await dirHandleOf(p, true);
+      await rescan();
+    }else{
+      project.dirs.push(p);
+      persist();
+      renderFileList();
+    }
+  }catch(e){ fail(e); }
+}
+
+async function renameFile(id){
+  const f = project.files.find(x => x.id === id);
+  if(!f) return;
+  const p = cleanPath(prompt("Đổi tên / di chuyển (đường dẫn mới):", f.name));
+  if(!p || p === f.name) return;
+  if(taken(p)){ alert("Tên hoặc đường dẫn đã tồn tại."); return; }
+  try{
+    if(rootH){
+      if(id === project.activeId && editor) f.content = editor.getValue();
+      await writeDisk({ name:p, content:f.content });
+      await (await dirHandleOf(dirName(f.name))).removeEntry(baseName(f.name));
+      f.unsaved = false;
+      expandAncestors(p);
+      await rescan({ [id]: "d:" + p });
+    }else{
+      f.name = p;
+      expandAncestors(p);
+      if(id === project.activeId){
+        monacoRef.editor.setModelLanguage(editor.getModel(), langOf(p));
+        document.getElementById("statusRight").textContent = langOf(p).toUpperCase();
+      }
+      persist();
+      renderAll();
+    }
+  }catch(e){ fail(e); }
+}
+
+function removeFilesLocal(ids){
+  const wasActive = ids.includes(project.activeId);
+  project.files = project.files.filter(f => !ids.includes(f.id));
+  project.open = project.open.filter(i => !ids.includes(i));
+  if(wasActive){
+    const next = project.open[project.open.length - 1] || project.files[0].id;
+    switchFile(next, true);
+  }else{
+    renderAll();
+  }
+  persist();
+}
+
+async function deleteFile(id){
+  if(project.files.length <= 1){ alert("Cần ít nhất 1 file."); return; }
+  const f = project.files.find(x => x.id === id);
+  if(!f) return;
+  if(!confirm(rootH ? `Xoá "${f.name}" khỏi máy? Không hoàn tác được.` : `Xoá "${f.name}"?`)) return;
+  try{
+    if(rootH){
+      f.unsaved = false;
+      await (await dirHandleOf(dirName(f.name))).removeEntry(baseName(f.name));
+      await rescan();
+    }else{
+      removeFilesLocal([id]);
+    }
+  }catch(e){ fail(e); }
+}
+
+function remapExpanded(from, to){
+  const ne = new Set();
+  expanded.forEach(d => ne.add(d === from || d.startsWith(from + "/") ? to + d.slice(from.length) : d));
+  expanded = ne;
+}
+
+async function renameDir(path){
+  const p = cleanPath(prompt("Đổi tên / di chuyển thư mục (đường dẫn mới):", path));
+  if(!p || p === path) return;
+  if(p.startsWith(path + "/")){ alert("Không thể chuyển thư mục vào chính nó."); return; }
+  if(taken(p)){ alert("Tên hoặc đường dẫn đã tồn tại."); return; }
+  try{
+    if(rootH){
+      const remap = {};
+      project.files.forEach(f => {
+        if(f.name.startsWith(path + "/")) remap[f.id] = "d:" + p + f.name.slice(path.length);
+      });
+      await persist();
+      const parent = await dirHandleOf(dirName(path));
+      const h = await parent.getDirectoryHandle(baseName(path));
+      if(typeof h.move !== "function"){
+        throw new Error("Trình duyệt này chưa hỗ trợ đổi tên thư mục trực tiếp trên máy.");
+      }
+      await h.move(await dirHandleOf(dirName(p), true), baseName(p));
+      remapExpanded(path, p);
+      expandAncestors(p + "/x");
+      await rescan(remap);
+    }else{
+      project.files.forEach(f => {
+        if(f.name.startsWith(path + "/")) f.name = p + f.name.slice(path.length);
+      });
+      project.dirs = project.dirs.map(d => d === path || d.startsWith(path + "/") ? p + d.slice(path.length) : d);
+      remapExpanded(path, p);
+      expandAncestors(p + "/x");
+      persist();
+      renderAll();
+    }
+  }catch(e){ fail(e); }
+}
+
+async function deleteDir(path){
+  const inside = project.files.filter(f => f.name.startsWith(path + "/"));
+  if(inside.length >= project.files.length){ alert("Cần ít nhất 1 file ngoài thư mục này."); return; }
+  const msg = rootH
+    ? `Xoá thư mục "${path}" và toàn bộ nội dung khỏi máy? Không hoàn tác được.`
+    : `Xoá thư mục "${path}" và ${inside.length} file trong đó?`;
+  if(!confirm(msg)) return;
+  try{
+    if(rootH){
+      inside.forEach(f => { f.unsaved = false; });
+      await (await dirHandleOf(dirName(path))).removeEntry(baseName(path), { recursive:true });
+      await rescan();
+    }else{
+      project.dirs = project.dirs.filter(d => d !== path && !d.startsWith(path + "/"));
+      removeFilesLocal(inside.map(f => f.id));
+    }
+  }catch(e){ fail(e); }
+}
+
+/* === MỞ THƯ MỤC TRÊN MÁY (File System Access API) === */
+async function scanDisk(h){
+  const files = [], dirs = [];
+  let skipped = 0;
+  async function walk(dh, prefix){
+    const entries = [];
+    for await (const [name, eh] of dh.entries()) entries.push([name, eh]);
+    entries.sort((a, b) => a[0].localeCompare(b[0]));
+    for(const [name, eh] of entries){
+      const p = prefix ? prefix + "/" + name : name;
+      if(eh.kind === "directory"){
+        if(IGNORE_DIRS.has(name)) continue;
+        dirs.push(p);
+        await walk(eh, p);
+      }else{
+        if(IGNORE_FILES.has(name)) continue;
+        if(files.length >= MAX_FILES || BIN_RE.test(name)){ skipped++; continue; }
+        const file = await eh.getFile();
+        if(file.size > MAX_SIZE){ skipped++; continue; }
+        const text = await file.text();
+        if(text.includes("\0")){ skipped++; continue; }
+        files.push({ id:"d:" + p, name:p, content:text });
+      }
+    }
+  }
+  await walk(h, "");
+  return { files, dirs, skipped, open:[], activeId:null };
+}
+
+function pickInitial(np){
+  const f = np.files.find(x => x.name === "index.html") ||
+            np.files.find(x => langOf(x.name) === "html") ||
+            np.files[0];
+  np.activeId = f.id;
+  np.open = [f.id];
+  return np;
+}
+
+async function openDisk(){
+  if(!window.showDirectoryPicker){
+    alert("Trình duyệt này chưa hỗ trợ mở thư mục trên máy (cần Chrome/Edge bản mới). Bạn vẫn dùng được cây thư mục lưu trong trình duyệt.");
+    return;
+  }
+  let h;
+  try{ h = await showDirectoryPicker({ mode:"readwrite" }); }
+  catch(e){ if(e.name !== "AbortError") fail(e); return; }
+  try{
+    if(!rootH){ saveAll(); virtualBackup = project; }
+    else await persist();
+    const np = await scanDisk(h);
+    const prevRoot = rootH;
+    rootH = h;
+    if(!np.files.length){
+      if(!confirm("Thư mục chưa có file văn bản. Tạo index.html mới trong thư mục này?")){ rootH = prevRoot; return; }
+      const f = { id:"d:index.html", name:"index.html", content:
+        '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="utf-8">\n  <title>Trang mới</title>\n</head>\n<body>\n\n</body>\n</html>' };
+      await writeDisk(f);
+      np.files.push(f);
+    }
+    project = pickInitial(np);
+    initExpanded();
+    afterProjectReplaced();
+    document.getElementById("statusLeft").textContent =
+      `Đã tải ${np.files.length} file` + (np.skipped ? `, bỏ qua ${np.skipped} file nhị phân/quá lớn` : "");
+    setSaveIndicator("Saved");
+  }catch(e){ fail(e); }
+}
+
+async function rescan(remap = {}, focusPath){
+  if(!rootH) return;
+  try{
+    await persist();
+    const prev = project;
+    const np = await scanDisk(rootH);
+    if(!np.files.length){
+      alert("Thư mục không còn file văn bản nào, quay lại dự án trong trình duyệt.");
+      return closeDisk();
+    }
+    let open = prev.open.map(id => remap[id] || id).filter(id => np.files.some(f => f.id === id));
+    let act = remap[prev.activeId] || prev.activeId;
+    if(focusPath) act = "d:" + focusPath;
+    if(!np.files.some(f => f.id === act)) act = open[open.length - 1] || pickInitial(np).activeId;
+    if(!open.includes(act)) open.push(act);
+    np.open = open;
+    np.activeId = act;
+    project = np;
+    afterProjectReplaced();
+  }catch(e){ fail(e); }
+}
+
+async function closeDisk(){
+  if(!rootH) return;
+  await persist();
+  rootH = null;
+  project = virtualBackup ? normalizeProject(virtualBackup) : loadProject();
+  virtualBackup = null;
+  initExpanded();
+  afterProjectReplaced();
+  setSaveIndicator("Saved");
+}
+
+function saveAll(){
+  if(editor){
+    const cur = getActiveFile();
+    const v = editor.getValue();
+    if(rootH && cur.content !== v) cur.unsaved = true;
+    cur.content = v;
+  }
+  return persist();
+}
+
+function clearCurrent(){
+  if(!editor) return;
+  const f = getActiveFile();
+  if(!confirm(`Xoá toàn bộ nội dung file "${f.name}"?`)) return;
+  editor.setValue("");
+  f.content = "";
+  if(rootH) f.unsaved = true;
+  dirty = true;
+  markActiveTabDirty(true);
+  persist();
+  refreshPreview();
+}
+
+function resetFile(id){
+  if(!editor) return;
+  if(rootH){
+    alert("Reset về mặc định chỉ dùng cho dự án trong trình duyệt, không áp dụng khi đang sửa thư mục trên máy.");
+    return;
+  }
+  const f = project.files.find(x => x.id === id);
+  if(!f) return;
+  const def = defaultProject().files.find(x => x.id === id);
+  if(!def){
+    alert(`"${f.name}" là file tự tạo nên không có bản mặc định.`);
+    return;
+  }
+  if(!confirm(`Reset "${f.name}" về mặc định? Nội dung hiện tại sẽ mất.`)) return;
+  f.content = def.content;
+  if(id === project.activeId) editor.setValue(def.content);
+  persist();
+  renderAll();
+  toggleRightSidebar(false);
+}
+
+function formatCurrent(){
+  if(!editor) return;
+  editor.getAction("editor.action.formatDocument").run();
+}
+
+function downloadCurrent(){
+  const f = getActiveFile();
+  f.content = editor.getValue();
+  const blob = new Blob([f.content], { type:"text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = baseName(f.name);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* === GHÉP HTML + CSS + JS THEO ĐƯỜNG DẪN TƯƠNG ĐỐI === */
+function normalizePath(p){
+  const out = [];
+  for(const s of p.split("/")){
+    if(!s || s === ".") continue;
+    if(s === "..") out.pop(); else out.push(s);
+  }
+  return out.join("/");
+}
+
+function resolveHref(href, baseDir){
+  if(/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return null;
+  href = href.split("#")[0].split("?")[0];
+  try{ href = decodeURIComponent(href); }catch(e){}
+  return normalizePath(href.startsWith("/") ? href.slice(1) : (baseDir ? baseDir + "/" : "") + href);
+}
+
+function pickHtml(){
+  const act = getActiveFile();
+  if(act && langOf(act.name) === "html") return act;
+  return project.files.find(f => f.name === "index.html") ||
+         project.files.find(f => langOf(f.name) === "html");
+}
+
+function buildHtml(htmlFile){
+  const base = dirName(htmlFile.name);
+  const find = (href) => {
+    const p = resolveHref(href, base);
+    return p == null ? null : project.files.find(f => f.name === p);
+  };
+  return htmlFile.content
+    .replace(/<link\b[^>]*?href=["']([^"']+)["'][^>]*>/gi, (m, href) => {
+      const f = find(href);
+      return f && langOf(f.name) === "css" ? `<style>\n${f.content}\n</style>` : m;
+    })
+    .replace(/<script\b[^>]*?src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (m, src) => {
+      const f = find(src);
+      return f && langOf(f.name) === "javascript" ? `<script>\n${f.content}\n<\/script>` : m;
+    });
+}
+
+function downloadBundle(){
+  saveAll();
+  const htmlFile = pickHtml();
+  if(!htmlFile){ alert("Không tìm thấy file HTML để đóng gói."); return; }
+  const blob = new Blob([buildHtml(htmlFile)], { type:"text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bundle.html";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function refreshPreview(){
+  const iframe = document.getElementById("preview");
+  const htmlFile = pickHtml();
+  if(!htmlFile){
+    iframe.srcdoc = "<p style='font-family:sans-serif;padding:1rem;color:#888'>Không có file HTML để preview.</p>";
+    return;
+  }
+  iframe.srcdoc = buildHtml(htmlFile);
+}
+
+function setViewMode(mode){
+  viewMode = mode;
+  const area = document.getElementById("editorArea");
+  area.classList.remove("mode-editor", "mode-split", "mode-preview");
+  area.classList.add("mode-" + mode);
+  document.getElementById("btnEditorMode").classList.toggle("active", mode === "editor");
+  document.getElementById("btnSplitMode").classList.toggle("active", mode === "split");
+  document.getElementById("btnPreviewMode").classList.toggle("active", mode === "preview");
+  if(mode !== "editor") refreshPreview();
+}
+
+function setFontSize(px){
+  if(editor) editor.updateOptions({ fontSize: parseInt(px, 10) });
+}
+
+let minimapOn = true;
+function toggleMinimap(){
+  minimapOn = !minimapOn;
+  if(editor) editor.updateOptions({ minimap: { enabled: minimapOn } });
+  document.getElementById("btnMinimap").classList.toggle("active", minimapOn);
+}
+function toggleWrap() {
+  const btn = document.getElementById('bnt-wrap');
+  
+  if (!btn) return; // Bảo vệ tránh lỗi nếu không tìm thấy nút
+
+  // Đảo ngược trạng thái class active
+  btn.classList.toggle('active');
+  
+  // Kiểm tra nút có chứa class 'active' hay không
+  const isActive = btn.classList.contains('active');
+  
+  // Cập nhật cấu hình xuống dòng cho Monaco Editor
+  if (typeof editor !== 'undefined' && editor) {
+    editor.updateOptions({
+      wordWrap: isActive ? 'on' : 'off'
+    });
+  }
+}
+function toggleTheme(){
+  const html = document.documentElement;
+  const isLight = html.getAttribute("data-theme") === "light";
+  html.setAttribute("data-theme", isLight ? "dark" : "light");
+  if(monacoRef) monacoRef.editor.setTheme(isLight ? "vs-dark" : "vs");
+  localStorage.setItem("genesis-editor-theme", isLight ? "dark" : "light");
+}
+
+(function(){
+  const saved = localStorage.getItem("genesis-editor-theme");
+  if(saved === "light") document.documentElement.setAttribute("data-theme", "light");
+})();
+
+window.addEventListener("beforeunload", (e) => {
+  if(dirty){
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+
+/* === ĐỒNG BỘ CHIỀU CAO .App VỚI BÀN PHÍM ẢO === */
+function syncAppHeightWithViewport(){
+  const app = document.querySelector(".App");
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  app.style.height = h + "px";
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", syncAppHeightWithViewport);
+  window.visualViewport.addEventListener("scroll", syncAppHeightWithViewport);
+}
+window.addEventListener("resize", syncAppHeightWithViewport);
+syncAppHeightWithViewport();
+
+</script>
+</body>
+</html>
