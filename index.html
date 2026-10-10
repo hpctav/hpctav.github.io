@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bí Kíp Giao Diện Hiện Đại & Hiệu Ứng Hạt</title>
 
+  <!-- Favicon & PWA Icons cho mọi thiết bị -->
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#007AFF">
+
   <style>
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -29,7 +33,7 @@
       transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* --- 1. CANVAS HIỆU ỨNG HẠT VÀ BLOB --- */
+    /* --- CANVAS HIỆU ỨNG HẠT VÀ BLOB --- */
     canvas#canvas {
       position: fixed;
       top: 0;
@@ -60,37 +64,16 @@
       animation: move 15s infinite alternate;
       will-change: transform;
     }
-
-    .blob-1 {
-      top: -100px;
-      left: -100px;
-      background: #ff3b30;
-    }
-
-    .blob-2 {
-      bottom: -100px;
-      right: -100px;
-      background: #5856d6;
-    }
-
-    .blob-3 {
-      top: 40%;
-      left: 30%;
-      background: #34c759;
-      width: 250px;
-    }
+    .blob-1 { top: -100px; left: -100px; background: #ff3b30; }
+    .blob-2 { bottom: -100px; right: -100px; background: #5856d6; }
+    .blob-3 { top: 40%; left: 30%; background: #34c759; width: 250px; }
 
     @keyframes move {
-      from {
-        transform: translate(0, 0) scale(1);
-      }
-
-      to {
-        transform: translate(60px, 80px) scale(1.1);
-      }
+      from { transform: translate(0, 0) scale(1); }
+      to { transform: translate(60px, 80px) scale(1.1); }
     }
 
-    /* --- 2. BIẾN SỐ TOÀN CỤC --- */
+    /* --- BIẾN SỐ TOÀN CỤC --- */
     :root {
       --glass-bg: rgba(255, 255, 255, 0.7);
       --text-main: #1d1d1f;
@@ -106,13 +89,12 @@
       vertical-align: -0.125em;
       fill: currentColor;
     }
-
     .acc-header .icon {
       width: 0.9em;
       height: 0.9em;
     }
 
-    /* --- 3. KHU VỰC CHÀO MỪNG & ĐỒNG HỒ --- */
+    /* --- KHU VỰC CHÀO MỪNG & ĐỒNG HỒ --- */
     .dashboard {
       text-align: center;
       z-index: 2;
@@ -125,7 +107,6 @@
       margin: 0;
       font-weight: 700;
     }
-
     #time-detail {
       font-size: 1.1rem;
       opacity: 0.8;
@@ -139,14 +120,13 @@
       text-shadow: 0 0 25px rgba(0, 122, 255, 0.5);
       font-family: 'Courier New', monospace;
     }
-
     #date-display {
       font-size: 1rem;
       letter-spacing: 3px;
       opacity: 0.8;
     }
 
-    /* --- 4. NÚT MENU VÀ LỚP PHỦ --- */
+    /* --- NÚT MENU VÀ LỚP PHỦ --- */
     #menuBtn {
       position: fixed;
       width: 60px;
@@ -155,16 +135,14 @@
       border: none;
       background: white;
       color: var(--text-main);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       cursor: pointer;
       z-index: 1001;
       font-size: 24px;
       transition: 0.2s;
+      pointer-events: auto;
     }
-
-    #menuBtn:active {
-      transform: scale(0.9);
-    }
+    #menuBtn:active { transform: scale(0.9); }
 
     #overlay {
       position: fixed;
@@ -172,14 +150,14 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0,0,0,0.3);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: none;
       z-index: 999;
     }
 
-    /* --- 5. MENU ACCORDION --- */
+    /* --- MENU ACCORDION --- */
     .menu {
       position: fixed;
       width: 300px;
@@ -191,34 +169,26 @@
       padding: 20px;
       display: none;
       z-index: 1000;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.3);
       color: var(--text-main);
+      pointer-events: auto;
     }
-
     .menu.show {
       display: block;
       animation: pop 0.3s ease;
     }
 
     @keyframes pop {
-      from {
-        opacity: 0;
-        transform: scale(0.9) translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
+      from { opacity: 0; transform: scale(0.9) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .acc-item {
       margin-bottom: 10px;
       border-radius: 15px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255,255,255,0.2);
     }
-
     .acc-header {
       padding: 15px;
       cursor: pointer;
@@ -228,7 +198,6 @@
       font-weight: bold;
       font-size: 14px;
     }
-
     .acc-content {
       max-height: 0;
       overflow: hidden;
@@ -237,19 +206,14 @@
       flex-direction: column;
       padding: 0 15px;
     }
-
     .acc-item.active .acc-content {
       max-height: 200px;
       padding-bottom: 15px;
     }
+    .acc-item.active .acc-header { color: var(--accent-color); }
 
-    .acc-item.active .acc-header {
-      color: var(--accent-color);
-    }
-
-    .acc-content button,
-    .acc-content a {
-      background: rgba(255, 255, 255, 0.4);
+    .acc-content button, .acc-content a {
+      background: rgba(255,255,255,0.4);
       border: none;
       padding: 12px;
       margin-top: 8px;
@@ -261,34 +225,16 @@
       text-decoration: none;
     }
 
-    /* --- 6. VỊ TRÍ & THEME --- */
-    .top-left {
-      top: 20px;
-      left: 20px;
-    }
-
-    .top-right {
-      top: 20px;
-      right: 20px;
-    }
-
-    .bottom-left {
-      bottom: 20px;
-      left: 20px;
-    }
-
-    .bottom-right {
-      bottom: 20px;
-      right: 20px;
-    }
+    /* --- VỊ TRÍ & THEME --- */
+    .top-left { top: 20px; left: 20px; }
+    .top-right { top: 20px; right: 20px; }
+    .bottom-left { bottom: 20px; left: 20px; }
+    .bottom-right { bottom: 20px; right: 20px; }
 
     body[data-theme="light"] {
       color: #1d1d1f;
     }
-
-    body[data-theme="light"] .blob-container {
-      display: block;
-    }
+    body[data-theme="light"] .blob-container { display: block; }
 
     body[data-theme="dark"] {
       background: #0f0c29;
@@ -296,21 +242,14 @@
       --glass-bg: rgba(30, 30, 30, 0.8);
       --text-main: #fff;
     }
-
-    body[data-theme="dark"] .blob-container {
-      display: none;
-    }
-
+    body[data-theme="dark"] .blob-container { display: none; }
     body[data-theme="dark"] #menuBtn {
       background: #333;
       color: #fff;
     }
 
     @media (max-width: 480px) {
-      #digital-clock {
-        font-size: 3rem;
-      }
-
+      #digital-clock { font-size: 3rem; }
       .menu {
         width: 90%;
         left: 5% !important;
@@ -320,7 +259,6 @@
     }
   </style>
 </head>
-
 <body data-theme="dark">
 
   <div class="blob-container">
@@ -333,31 +271,19 @@
 
   <div id="overlay" onclick="closeMenu()"></div>
 
-  <button id="menuBtn" class="bottom-left" onclick="toggleMenu()">
+  <button id="menuBtn" class="top-left" onclick="toggleMenu()">
     <svg class="icon" viewBox="0 0 512 512" fill="currentColor">
-      <circle cx="96" cy="96" r="48" />
-      <circle cx="256" cy="96" r="48" />
-      <circle cx="416" cy="96" r="48" />
-      <circle cx="96" cy="256" r="48" />
-      <circle cx="256" cy="256" r="48" />
-      <circle cx="416" cy="256" r="48" />
-      <circle cx="96" cy="416" r="48" />
-      <circle cx="256" cy="416" r="48" />
-      <circle cx="416" cy="416" r="48" />
+      <circle cx="96" cy="96" r="48"/><circle cx="256" cy="96" r="48"/><circle cx="416" cy="96" r="48"/>
+      <circle cx="96" cy="256" r="48"/><circle cx="256" cy="256" r="48"/><circle cx="416" cy="256" r="48"/>
+      <circle cx="96" cy="416" r="48"/><circle cx="256" cy="416" r="48"/><circle cx="416" cy="416" r="48"/>
     </svg>
   </button>
 
   <div id="menu" class="menu top-left">
     <div class="acc-item">
       <div class="acc-header" onclick="toggleAcc(this)">
-        <span><svg class="icon" viewBox="0 0 576 512">
-            <path
-              d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 1 21 7L564.8 231.5c8 7 12 15 11 24z" />
-          </svg> TRANG CHỦ</span>
-        <svg class="icon" viewBox="0 0 512 512">
-          <path
-            d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" />
-        </svg>
+        <span><svg class="icon" viewBox="0 0 576 512"><path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 1 21 7L564.8 231.5c8 7 12 15 11 24z" /></svg> TRANG CHỦ</span>
+        <svg class="icon" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" /></svg>
       </div>
       <div class="acc-content">
         <a href="#">Bảng tin</a>
@@ -367,32 +293,21 @@
 
     <div class="acc-item">
       <div class="acc-header" onclick="toggleAcc(this)">
-        <span><svg class="icon" viewBox="0 0 512 512" fill="currentColor">
-            <path
-              d="M256 32L32 144l224 112 192-96v128h32V144L256 32zM416 260.6l-160 80-160-80v83.4l160 80 160-80v-83.4z" />
-          </svg> HỌC CODE</span>
-        <svg class="icon" viewBox="0 0 512 512">
-          <path
-            d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" />
-        </svg>
+        <span><svg class="icon" viewBox="0 0 512 512" fill="currentColor"><path d="M256 32L32 144l224 112 192-96v128h32V144L256 32zM416 260.6l-160 80-160-80v83.4l160 80 160-80v-83.4z" /></svg> HỌC CODE</span>
+        <svg class="icon" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" /></svg>
       </div>
       <div class="acc-content">
-        <a href="tutorial.html">HTML + CSS + JAVASCRIP</a>
-        <a href="tool.html">GENERATOR TOOLL</a>
-        <a href=monaco.html>GENESIS MONACO EDITOR</a>
-        <a href="https://hpctav.github.io/zyntax">ZYNTAX EDITOR</a>
+        <a href="editor.html">Genesis Monaco Editor</a>
+        <a href="#">HTML</a>
+        <a href="#">CSS</a>
+        <a href="#">SCRIPT</a>
       </div>
     </div>
 
     <div class="acc-item">
       <div class="acc-header" onclick="toggleAcc(this)">
-        <span><svg class="icon" viewBox="0 0 24 24">
-            <path d="M12 2l-4 4h3v5H6V8l-4 4 4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3z" />
-          </svg> VỊ TRÍ MENU</span>
-        <svg class="icon" viewBox="0 0 512 512">
-          <path
-            d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" />
-        </svg>
+        <span><svg class="icon" viewBox="0 0 24 24"><path d="M12 2l-4 4h3v5H6V8l-4 4 4 4v-3h5v5H8l4 4 4-4h-3v-5h5v3l4-4-4-4v3h-5V6h3z" /></svg> VỊ TRÍ MENU</span>
+        <svg class="icon" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" /></svg>
       </div>
       <div class="acc-content">
         <button onclick="setPos('top-left')">Trên trái</button>
@@ -404,14 +319,8 @@
 
     <div class="acc-item">
       <div class="acc-header" onclick="toggleAcc(this)">
-        <span><svg class="icon" viewBox="0 0 384 512">
-            <path
-              d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z" />
-          </svg> GIAO DIỆN</span>
-        <svg class="icon" viewBox="0 0 512 512">
-          <path
-            d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" />
-        </svg>
+        <span><svg class="icon" viewBox="0 0 384 512"><path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z" /></svg> GIAO DIỆN</span>
+        <svg class="icon" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" /></svg>
       </div>
       <div class="acc-content">
         <button onclick="setTheme('light')">Chế độ Sáng</button>
@@ -429,10 +338,19 @@
   </div>
 
   <script>
+    // Đăng ký Service Worker cho PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker đăng ký thành công!', reg))
+          .catch(err => console.log('Đăng ký Service Worker thất bại:', err));
+      });
+    }
+
     const menu = document.getElementById('menu');
     const overlay = document.getElementById('overlay');
     const menuBtn = document.getElementById('menuBtn');
-    let currentThemeMode = 'dark'; // Biến lưu màu nền canvas tối ưu hiệu năng
+    let currentThemeMode = 'dark';
 
     function haptic(ms = 15) {
       if (navigator.vibrate) navigator.vibrate(ms);
@@ -523,8 +441,7 @@
       if (pref === 'auto') applyTheme('auto');
     });
 
-
-    /* --- HIỆU ỨNG HẠT CANVAS (ĐÃ TỐI ƯU SIÊU MƯỢT) --- */
+    /* --- HIỆU ỨNG HẠT CANVAS SIÊU MƯỢT --- */
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -571,7 +488,7 @@
     }
 
     function createParticles(x, y, speedX, speedY) {
-      const count = Math.floor(Math.random() * 4) + 3; // Giảm bớt số lượng hạt để cực mượt
+      const count = Math.floor(Math.random() * 4) + 3;
       const color = colors[Math.floor(Math.random() * colors.length)];
 
       for (let i = 0; i < count; i++) {
@@ -608,7 +525,6 @@
     }
 
     function animate() {
-      // Dùng biến tối ưu trực tiếp thay vì getAttribute mỗi frame
       ctx.fillStyle = (currentThemeMode === 'dark') ? 'rgba(15, 12, 41, 0.25)' : 'rgba(240, 242, 245, 0.25)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -682,5 +598,4 @@
     };
   </script>
 </body>
-
 </html>
