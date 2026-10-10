@@ -1,0 +1,24 @@
+{
+  "name": "Zyntax Editor",
+  "short_name": "Zyntax",
+  "description": "Zyntax Web Editor",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1e1e1e",
+  "theme_color": "#1e1e1e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,1 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Zyntax</title>
+    <meta name="theme-color" content="#1e1e1e" />
+    <link rel="icon" href="./icon.png" />
+    
+    <!-- Khai báo Manifest cho PWA -->
+    <link rel="manifest" href="./manifest.json" />
 
+    <!-- CSS chính -->
+    <link rel="stylesheet" crossorigin href="./assets/index-B3rsWBGA.css" />
+
+    <style>
+      /* Khung viền và viewport chuẩn chống zoom */
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #1e1e1e;
+        touch-action: manipulation;
+      }
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- JS chính -->
+    <script src="./zyntax-web-shim.js"></script>
+    <script type="module" crossorigin src="./assets/index-B8iKdPjo.js"></script>
+
+    <!-- Đăng ký Service Worker cho PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('./sw.js', { scope: './' })
+            .then((reg) => console.log('Service Worker đã đăng ký thành công:', reg.scope))
+            .catch((err) => console.log('Lỗi đăng ký Service Worker:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

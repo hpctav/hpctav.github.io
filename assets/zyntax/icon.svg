@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Logo" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1000 1000">
+  <!-- Generator: Adobe Illustrator 29.6.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 9)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #fff;
+      }
+
+      .st0, .st1, .st2 {
+        fill-rule: evenodd;
+      }
+
+      .st1 {
+        fill: #0af;
+      }
+
+      .st2 {
+        fill: #06c;
+      }
+    </style>
+  </defs>
+  <path id="background" class="st0" d="M121.31,0h757.39c68.76,0,121.31,54.31,121.31,121.31v757.39c0,68.76-52.55,121.31-121.31,121.31H121.31c-67,0-121.31-52.55-121.31-121.31V121.31C0,54.31,54.31,0,121.31,0Z"/>
+  <g id="logo-group">
+    <polygon id="top" class="st2" points="223.52 146.84 776.48 319.64 701.96 483.8 223.52 334.76 223.52 146.84"/>
+    <polygon id="bottom" class="st2" points="333.68 521.6 776.48 665.24 776.48 853.16 223.52 680.36 333.68 521.6"/>
+    <polygon id="centre" class="st1" points="223.52 492.44 776.48 319.64 776.48 507.56 223.52 680.36 223.52 492.44"/>
+  </g>
+</svg>
